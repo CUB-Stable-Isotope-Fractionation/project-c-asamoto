@@ -31,7 +31,7 @@ $$
 \end{aligned}
 $$
 
-With this initial model, there is no reversibility involved, we are just looking at transport and reduction rates which are captured with the f parameter. Calculate del_in.
+With this initial model, there is no reversibility involved, we are just looking at transport and reduction rates which are captured with the f parameter (f = $\frac{\phi_{reduction}}{\phi_{transport}}$). Calculate del_in.
 
 ```{r}
 nin <- expand.grid(
@@ -237,54 +237,15 @@ on
 
 5.a) What does this mean about the relationship between oxygen and nitrogen isotopes? 
 
-
-##Efflux 
-
-But ciara wait?! Weren't we interested in looking at how transport and reduction rates effect the isotopic effect expressed in ecosystems?! Yes! However, we can't solve this using a steady state model. Theoretically I should solve this under non steady state conditions, but due to time constraints have used a model that is not 100% applicable but essentially gives the gist... 
-
+## Efflux??
 
 ```{r out.width = "100%", echo=FALSE, eval=TRUE}
-knitr::include_graphics("hand_wavy.png")
+knitr::include_graphics("rd.png")
 ```
-
-Here we assume that our $\epsilon_{ef}$ should equal each of the isotopic effects in the cell minus the fractionation that leaves as N2 gas. This works out to:
-
 
 $$
 \begin{aligned}
-\epsilon_{ef} = \epsilon_{t} + eu(\epsilon_{red} - \epsilon_{loss}) + eu*r(\epsilon_{nir} - \epsilon_{nix}) 
+\delta_{N_2} = \delta_{NO3.out} + (-1 + f)(\epsilon_{loss} - \epsilon_{nar}) + \epsilon_{tr}
 \end{aligned}
 $$
-Vary the transport and reduction rates (eu, from 0 to 1) to see the isotopic effects expressed outside of the cell.
-
-```{r}
-
-efflux <- expand.grid(
-  e_t = 0.002,
-  e_red = -0.025,
-  e_loss = 0.002,
-  e_nir = -0.012,
-  e_nix = 0.012,
-  eu = seq(),
-  r = seq(0,1,0.2)
-  
-) %>% 
-  as_data_frame() %>% 
-  mutate(
-    e_ef = e_t + eu*(e_red - e_loss) + eu*r*(e_nir - e_nix)
-  )
-
-efflux_plot <- 
-  ggplot(efflux) +
-  aes(x = r, y = e_ef, color = factor(eu)) +
-  geom_line() +
-  geom_point() +
-  scale_x_continuous( "nitrite reductase reversibility") +
-  scale_y_continuous(name = latex2exp::TeX("$\\epsilon_{efflux}$")) +
-  theme_bw()
-
-efflux_plot
-
-```
-6.a) Yay! What does this graph tell us about efflux in relation to transport and reduction rates?
 
