@@ -31,7 +31,7 @@ $$
 \end{aligned}
 $$
 
-1) With this initial model, there is no reversibility involved, we are just looking at transport and reduction rates. How does f (reduction/transport) impact the $\delta N_{15}$ observed? Michaelis menton over the not michaelis menton. Look at board again...
+With this initial model, there is no reversibility involved, we are just looking at transport and reduction rates which are captured with the f parameter. Calculate del_in.
 
 ```{r}
 nin <- expand.grid(
@@ -41,7 +41,9 @@ nin <- expand.grid(
  f = seq(0.0, 1, 0.01)
 ) %>% 
   #as_data_frame() %>% 
-  mutate(del_in = del_nout + e_transport - e_red*f)
+  mutate(
+    del_in =
+  )
 
 plot <-
   ggplot(nin) +
@@ -55,25 +57,36 @@ plot <-
 plot
 ```
 
-1) Why are delN15 values getting more positive? Does this make sense?
+1.a) How does f (reduction/transport) impact the $\delta N_{15}$ observed? 
 
-higher f implies faster reduction (relative to transport), less of this fractionation is seen inside the cell.  
+
+1.b) Why are delN15 values getting more positive? Does this make sense?
+
 
 ## Effects of rates of uptake and reduction
+
+So far our f is somewhat arbitrary. To make this a more realistic model, we can add enzyme rates of reaction into our equations. The michaelis-menten reaction looks like this:
+
+```{r out.width = "100%", echo=FALSE, eval=TRUE}
+knitr::include_graphics("mm.png")
+```
+
+This equation takes into account the amount of substrate, rates of reaction (vmax) for catalyzed by the enzymes, and the enzyme half saturation constant (Km). Complete the calculation for f using the michaelis menten equation to investigate the enzyme dynamics in this system. 
+
 ```{r}
 nin_mm <- expand.grid(
  e_transport = 0.002,
  e_red = -0.025,
- v_red = c(.1, .2),
- v_t = c(.1,.6),
+ v_red = c(.01, .02),
+ v_t = c(1,6),
  km_red = 5,
  km_t = 300,
- no3 = c(1,100,1),
+ no3 = seq(1,100,1),
  del_nout = 0.005
 ) %>% 
  # as_data_frame() %>% 
   mutate(
-    f = ((v_red * no3) / (km_red + no3)) / ((v_t * no3) / (km_t + no3)),
+    f = ,
     del_in = del_nout + e_transport - e_red*f
     )
 
@@ -82,28 +95,30 @@ plot <-
   aes(x = no3, y = del_in, color = factor(v_red), linetype = factor(v_t)) +
   geom_line() +
   scale_y_continuous(name = latex2exp::TeX("$\\delta^{15}N_{in}$")) +
+  scale_x_continuous("[NO3]") +
   scale_color_brewer(palette="Dark2") +
   theme_bw()
 
 plot
 ```
 
-2.a) How do transport and nitrate reduction rates affect delN15?
+2.a) How do transport and nitrate reduction rates affect delN15? How does this compare to with what the paper we read on tuesday thought about transport rates?
+
 
 2.b) Why does the delN15 decrease with increasing nitrate?  
 
-Faster reduction rates, higher delN15 values. Opposite for transport because the smaller the number the larger the f value. What does it all mean?!! Faster transport rates are not useful because reduction has to keep up?? Higher nitrate concentrations result in lower delN15 because why? Something about the Km + no3 concentration. So higher concentrations translate into lower velocities because all the active sites are occupied?
 
-Now let's look at a more complicated model that includes the reversibility step.
+## Nitrite reductase reversibility
+Now let's look at a more complicated model that includes a reversibility step. The nitrite reductase enzyme (nir) can be reversible under some environmental conditions, such as low pH, and can oxidize nitrite back into nitrate. Here is the isotopic mass balance under these conditions:
 
 $$
 \begin{aligned}
 \delta{N_{in}} &= \delta{N_{out}} + (f - fr -1)\epsilon_{loss} + f(r - 1)(\epsilon_{red} + r\epsilon_{nir} - r\epsilon_{nix}) + \epsilon_t
 \end{aligned}
 $$
+Vary the rates of reduction (pick two between 0.1 and 0.9) and transport (betwen 1 and 15).
 
 ```{r}
-# Nitrite reversibility model
 
 nin_rev <- expand.grid(
  e_t = 0.002,
@@ -112,12 +127,12 @@ nin_rev <- expand.grid(
  e_nir = -0.015,
  e_loss = 0.002,
  del_nout = 0.005,
- v_red = c(.1, .2),
- v_t = c(.1,.6),
+ v_red = c(,),
+ v_t = c(,),
  km_red = 5,
  km_t = 300,
- no3 = c(100),
- r = seq(0.1, 0.9, 0.1)
+ no3 = 100,
+ r = seq(0, 1,.1)
 ) %>% 
 
   as_data_frame() %>% 
@@ -130,7 +145,7 @@ plot <-
   ggplot(nin_rev) +
   aes(x = r, y = del_in, color = factor(v_red), linetype = factor(v_t)) +
   geom_line() +
-  scale_x_continuous("r") +
+  #scale_x_continuous("nitrite reductase reversibility") +
   scale_y_continuous(name = latex2exp::TeX("$\\delta^{15}N_{in}$")) +
   scale_color_brewer(palette="Dark2") +
   theme_bw()
@@ -139,7 +154,19 @@ plot
 
 ```
 
-Why does the shape of the plot change?
+3.a) How does reversibility affect the $\delta N_{in}$? Does this make sense?
+
+
+3.b) Why do the lines all converge on a single point?
+
+ 
+##Oxygen isotopes
+
+Now let's look at the oxygen isotopes. Stoichiometry is wild! 
+
+```{r out.width = "100%", echo=FALSE, eval=TRUE}
+knitr::include_graphics("oxy.png")
+```
 
 $$
 
@@ -149,40 +176,115 @@ $$
 
 $$
 
+Vary the reversibility and transport rate (best to do with two values at a time, try things between 1 and 20.) to determine the oxygen isotope dynamics. 
 
 ```{r}
-# Full model with oxygen isotopes
 
 nin_oxy <- expand.grid(
  e_t = 0.002,
  e_red = -0.025,
  e_br_nar = 0.025, #can be anywhere from 25-30
- e_nix = 0.003, #can be anywhere from 1.3-8.2 permil
+ e_nix_o = 0.003, #can be anywhere from 1.3-8.2 permil
  e_wi = -0.015, #range from -0.0128 to -0.0182
- e_nir = -0.012, #range from -0.005 to -0.025 need to find for oxygen
+ e_nir_o = -0.012, #range from need to find for oxygen or is it just the same?
  e_loss = 0.002,
- del_oout = 0.0015, #is this also zero?
+ del_oout = 0.0015, 
  del_h2o = 0.00, 
- v_red = c(.1, .2),
- v_t = c(.1,.6),
+ v_red = c(.2, .5,0.01),
+ v_t = c(,),
  km_red = 5,
  km_t = 300,
- no3 = c(100),
- r = seq(0.1, 1, 0.1)
+ no3 = 100,
+ r = 
 ) %>% 
   as_data_frame() %>% 
   mutate(
-    f = ((v_red * no3) / (km_red + no3)) / ((v_t * no3) / (km_t + no3)), 
-    del_in = (e_loss*(f*r*del_h2o + 3*del_oout - 3*(1 + f*(r-1)))) / (3 + f*r) + 3*e_t + f*(2*r - 3) * e_red + r*(2*(r -1 )*e_nir - 2*(r - 1) * e_nix + e_wi + 2*e_br_nar)
+    f_o = ((v_red * no3) / (km_red + no3)) / ((v_t * no3) / (km_t + no3)), 
+    del_in_o = (e_loss*(f_o*r*del_h2o + 3*del_oout - 3*(1 + f_o*(r-1)))) / (3 + f_o*r) + 3*e_t + f_o*(2*r - 3) * e_red + r*(2*(r -1 )*e_nir_o - 2*(r - 1) * e_nix_o + e_wi + 2*e_br_nar)
   )
 
 oxy_plot <- 
   ggplot(nin_oxy) +
-  aes(x = r, y = del_in, color = factor(v_red), linetype = factor(v_t)) +
+  aes(x = r, y = del_in_o, color = factor(v_red), linetype = factor(v_t)) +
   geom_line() +
   scale_color_brewer(palette = "Dark2") +
+  scale_y_continuous(name = latex2exp::TeX("$\\delta^{18}O_{in}$")) +
+  scale_x_continuous("nitrite reductase reversibility") +
   theme_bw()
   
 oxy_plot
   
 ```
+4a. Does this plot make sense? What about in relation to the nitrogen isotopes?
+
+
+##Combo-topes
+
+For reasons somewhat unknown oxygen and nitrogen isotopes fractionate at a 1:1 ratio during nitrate reduction. Let's see how this trend holds up under different reversibilities. Create a new df that combines the last two dfs that we have worked with. 
+
+```{r}
+new_df<- 
+
+on <- ggplot(new_df) +
+  aes(x = del_in_o, y=del_in, color = factor(r)) +
+  geom_line() +
+  scale_x_continuous(name = latex2exp::TeX("$\\delta^{18}O_{in}$")) +
+  scale_y_continuous(name = latex2exp::TeX("$\\delta^{15}N_{in}$")) +
+  theme_bw()
+
+on
+```
+
+5.a) What does this mean about the relationship between oxygen and nitrogen isotopes? 
+
+
+##Efflux 
+
+But ciara wait?! Weren't we interested in looking at how transport and reduction rates effect the isotopic effect expressed in ecosystems?! Yes! However, we can't solve this using a steady state model. Theoretically I should solve this under non steady state conditions, but due to time constraints have used a model that is not 100% applicable but essentially gives the gist... 
+
+
+```{r out.width = "100%", echo=FALSE, eval=TRUE}
+knitr::include_graphics("hand_wavy.png")
+```
+
+Here we assume that our $\epsilon_{ef}$ should equal each of the isotopic effects in the cell minus the fractionation that leaves as N2 gas. This works out to:
+
+
+$$
+\begin{aligned}
+\epsilon_{ef} = \epsilon_{t} + eu(\epsilon_{red} - \epsilon_{loss}) + eu*r(\epsilon_{nir} - \epsilon_{nix}) 
+\end{aligned}
+$$
+Vary the transport and reduction rates (eu, from 0 to 1) to see the isotopic effects expressed outside of the cell.
+
+```{r}
+
+efflux <- expand.grid(
+  e_t = 0.002,
+  e_red = -0.025,
+  e_loss = 0.002,
+  e_nir = -0.012,
+  e_nix = 0.012,
+  eu = seq(),
+  r = seq(0,1,0.2)
+  
+) %>% 
+  as_data_frame() %>% 
+  mutate(
+    e_ef = e_t + eu*(e_red - e_loss) + eu*r*(e_nir - e_nix)
+  )
+
+efflux_plot <- 
+  ggplot(efflux) +
+  aes(x = r, y = e_ef, color = factor(eu)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous( "nitrite reductase reversibility") +
+  scale_y_continuous(name = latex2exp::TeX("$\\epsilon_{efflux}$")) +
+  theme_bw()
+
+efflux_plot
+
+```
+6.a) Yay! What does this graph tell us about efflux in relation to transport and reduction rates?
+
