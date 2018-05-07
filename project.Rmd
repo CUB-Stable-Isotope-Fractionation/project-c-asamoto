@@ -25,9 +25,12 @@ On tuesday we discussed the possible factors that control the isotopic fractiona
 knitr::include_graphics("iso_model.png")
 ```
 
+The calculations for $\delta N_{in}$ and $\delta N_{2}$ are as follows.
+
 $$
 \begin{aligned}
-\delta{N_{in}} = \delta{N_{out}} + \epsilon_{t} - \epsilon_{red}f
+\delta{N_{in}} = \delta{N_{out}} + \epsilon_{t} - \epsilon_{red}f \\
+\delta_{N_2} = \delta_{NO3.out} + (-1 + f)(\epsilon_{loss} - \epsilon_{nar}) + \epsilon_{tr}
 \end{aligned}
 $$
 
@@ -42,12 +45,14 @@ nin <- expand.grid(
 ) %>% 
   #as_data_frame() %>% 
   mutate(
-    del_in =
-  )
+    del_in = del_nout + e_transport - e_red*f,
+    del_n2 = del_nout + (-1+f) * (e_transport - e_red) + e_transport
+  ) %>% 
+  gather(key = variable, value = delta, starts_with("del")) 
 
 plot <-
   ggplot(nin) +
-  aes(x = f, y = del_in) +
+  aes(x = f, y = del_in, color = variable) +
   geom_line() +
   scale_x_continuous("f") +
   scale_y_continuous(name = latex2exp::TeX("$\\delta^{15}N_{in}$")) +
@@ -61,6 +66,8 @@ plot
 
 
 1.b) Why are delN15 values getting more positive? Does this make sense?
+
+1.c) Try plotting with f on the x-axis, delta on the y, and color by variable. What does this show us?
 
 
 ## Effects of rates of uptake and reduction
@@ -81,19 +88,29 @@ nin_mm <- expand.grid(
  v_t = c(1,6),
  km_red = 5,
  km_t = 300,
- no3 = seq(1,100,1),
+ no3 = seq(1,300,1),
  del_nout = 0.005
 ) %>% 
  # as_data_frame() %>% 
   mutate(
-    f = ,
-    del_in = del_nout + e_transport - e_red*f
-    )
+    f = ((v_red * no3) / (km_red + no3)) / ((v_t * no3) / (km_t + no3)),
+    del_in = del_nout + e_transport - e_red*f,
+    del_n2 = del_nout + (-1+f) * (e_transport - e_red) + e_transport
+  ) #%>% 
+  #gather(key = variable, value = delta, starts_with("del"))
+    
+ # plot_f <- 
+ #   ggplot(nin_mm) +
+ #   aes(x= no3, y= f, color = factor(v_red), linetype = factor(v_t)) +
+ #   geom_line()
+ # 
+ # plot_f
 
 plot <-
   ggplot(nin_mm) +
-  aes(x = no3, y = del_in, color = factor(v_red), linetype = factor(v_t)) +
+  aes(x =r, y = del_in, color = factor(v_red), linetype = factor(v_t)) +
   geom_line() +
+  facet_wrap(~variable) +
   scale_y_continuous(name = latex2exp::TeX("$\\delta^{15}N_{in}$")) +
   scale_x_continuous("[NO3]") +
   scale_color_brewer(palette="Dark2") +
@@ -127,23 +144,25 @@ nin_rev <- expand.grid(
  e_nir = -0.015,
  e_loss = 0.002,
  del_nout = 0.005,
- v_red = c(,),
- v_t = c(,),
+ v_red = c(0.02,0.08),
+ v_t = c(1,10),
  km_red = 5,
  km_t = 300,
  no3 = 100,
- r = seq(0, 1,.1)
+ r = seq(0, 1,.1),
+ f = seq(0,1,.25)
 ) %>% 
 
   as_data_frame() %>% 
   mutate(
-    f = ((v_red * no3) / (km_red + no3)) / ((v_t * no3) / (km_t + no3)),
-    del_in = del_nout + ((f - f*r - 1) * e_loss) + f*(r -1) * (e_red + (r * e_nir) - (r * e_nix)) + e_t
-    )
+    #f = ((v_red * no3) / (km_red + no3)) / ((v_t * no3) / (km_t + no3)),
+    del_in = del_nout + ((f - f*r - 1) * e_loss) + f*(r -1) * (e_red + (r * e_nir) - (r * e_nix)) + e_t,
+    del_n2 = del_nout + (1+f*(r-1)) * (e_red - e_loss +r*(e_nir) - r * (e_nix)) + e_t #delta n2 including reversibility
+    ) 
 
 plot <-
   ggplot(nin_rev) +
-  aes(x = r, y = del_in, color = factor(v_red), linetype = factor(v_t)) +
+  aes(x = r, y = del_n2 * 1000, color = factor(round(f,3))) +
   geom_line() +
   #scale_x_continuous("nitrite reductase reversibility") +
   scale_y_continuous(name = latex2exp::TeX("$\\delta^{15}N_{in}$")) +
@@ -191,11 +210,11 @@ nin_oxy <- expand.grid(
  del_oout = 0.0015, 
  del_h2o = 0.00, 
  v_red = c(.2, .5,0.01),
- v_t = c(,),
+ v_t = c(1,5),
  km_red = 5,
  km_t = 300,
  no3 = 100,
- r = 
+ r = seq(0,1,.1)
 ) %>% 
   as_data_frame() %>% 
   mutate(
