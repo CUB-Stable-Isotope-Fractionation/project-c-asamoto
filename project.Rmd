@@ -303,26 +303,3 @@ oxy_plot
 ```
 4a. Does this plot make sense? What about in relation to the nitrogen isotopes?
 
-
-
-##Combo-topes
-
-For reasons somewhat unknown oxygen and nitrogen isotopes fractionate at a 1:1 ratio during nitrate reduction. Let's see how this trend holds up under different reversibilities. Create a new df that combines the last two dfs that we have worked with. 
-
-```{r}
-new_df<- left_join(nin_oxy, nin_rev)
-
-on <- ggplot(new_df) +
-  aes(x = del_in_o, y=del_in, color = factor(r)) +
-  geom_line() +
-  scale_x_continuous(name = latex2exp::TeX("$\\delta^{18}O_{in}$")) +
-  scale_y_continuous(name = latex2exp::TeX("$\\delta^{15}N_{in}$")) +
-  theme_bw()
-
-on
-```
-
-5.a) What does this mean about the relationship between oxygen and nitrogen isotopes? 
-
-
-
